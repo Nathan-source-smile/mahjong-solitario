@@ -1,43 +1,59 @@
 import { MESSAGE_TYPE, ROUNDS } from "../Common/Messages";
 import { ClientCommService } from "../ClientCommService";
-import { TIME_LIMIT, ALARM_LIMIT } from "../Common/Constants";
-
+import { TIME_LIMIT, ALARM_LIMIT, TOTAL_TILES, WIN, LOSE, NOT_END } from "../Common/Constants";
 
 //--------Defining global variables----------
-var playerCnt = 2;
-var cubic = {
-    NEIGHBOR_OFFSETS: [[0, 1, -1], [1, 0, -1], [1, -1, 0], [0, -1, 1], [-1, 0, 1], [-1, 1, 0]],
-    DIR_TO_CUBIC: [[1, -0.5, -0.5], [0.5, -1, 0.5], [-0.5, -0.5, 1], [-1, 0.5, 0.5], [-0.5, 1, -0.5], [0.5, 0.5, -1]],
-};
-var currentUnit = [];
-var targetCell = [];
-var playerList = [];
-var startList = [];
-var targetList = [];
-var availableCells = [];
-var currentPlayer = 0;
-var repliedUsers = [];
-var endflags = [];
-var gameEndFlag = false;
-var step = 0; // for mode 2
-var panel = [];
-var mode = 1;
-var ranking = [];
-var players = [];
-var timeHandlers = [];
-var s = 0;
-var fff = -1; // for mode 2
-
-panel = [
-    [4, -8, 4], [3, -7, 4], [4, -7, 3], [2, -6, 4], [3, -6, 3], [4, -6, 2], [1, -5, 4], [2, -5, 3], [3, -5, 2], [4, -5, 1],
-    [-8, 4, 4], [-7, 4, 3], [-7, 3, 4], [-6, 4, 2], [-6, 3, 3], [-6, 2, 4], [-5, 4, 1], [-5, 3, 2], [-5, 2, 3], [-5, 1, 4],
-    [4, 4, -8], [4, 3, -7], [3, 4, -7], [4, 2, -6], [3, 3, -6], [2, 4, -6], [4, 1, -5], [3, 2, -5], [2, 3, -5], [1, 4, -5]
-]
-for (var i = -4; i <= 8; i++) {
-    for (var j = -4; j <= 4 - i; j++) {
-        panel.push(copyObject([i, j, -i - j]));
-    }
+var tile = {
+    type: -1,
+    semiType: -1,
+    available: false,
+    x: -1, // 0~18
+    y: -1, // 0~38
+    z: -1, // 0~9
 }
+var coordinates = [];
+for (var i = 0; i < TOTAL_TILES; i++) {
+    var z = Math.floor(i / 36);
+    var x = Math.floor((i % 36) / 9) * 2;
+    var y = Math.floor((i % 36) % 9) * 2;
+    coordinates.push({ x: x, y: y, z: z });
+}
+coordinates.sort(function (a, b) {
+    return Math.floor(Math.random() * 3) - 1;
+});
+var tiles = [];
+for (var i = 0; i < TOTAL_TILES; i++) {
+    var temp = [];
+    temp = copyObject(tile);
+    temp.type = Math.floor(i / 4);
+    if (temp.type >= 0 && temp.type <= 8) {
+        temp.semiType = 0;
+    } else if (temp.type >= 9 && temp.type <= 17) {
+        temp.semiType = 1;
+    } else if (temp.type >= 18 && temp.type <= 26) {
+        temp.semiType = 2;
+    } else if (temp.type >= 27 && temp.type <= 28) {
+        switch (temp.type) {
+            case 27:
+                temp.semiType = 3 + (Math.floor(i % 4) + 1) / 10;
+                break;
+            case 28:
+                temp.semiType = 4 + (Math.floor(i % 4) + 1) / 10;
+                break;
+            default:
+                0;
+        }
+    } else if (temp.type >= 29 && temp.type <= 35) {
+        temp.semiType = 5 + (temp.type - 29);
+    }
+    temp.available = false;
+    temp.x = coordinates[i].x; // 0~18
+    temp.y = coordinates[i].y; // 0~38
+    temp.z = coordinates[i].z; // 0~9
+    tiles.push(temp);
+}
+var availableTiles = [];
+var availableMatches = [];
 //--------Defining global variables----------
 
 function copyObject(object) {
@@ -70,302 +86,6 @@ function sumArrays(arr1, arr2) {
     return sum;
 }
 
-if (!trace) {
-    var trace = function () {
-        console.trace(JSON.stringify(arguments));
-    }
-}
-
-function resetRepliedUsers() {
-    repliedUsers = [];
-}
-
-function isUserRepliedAlready(user) {
-    return repliedUsers.indexOf(user) >= 0;
-}
-
-function markUserReplied(user) {
-    if (isUserRepliedAlready(user)) {
-        return false;
-    }
-    repliedUsers.push(user);
-    return true;
-}
-
-function isAllUsersReplied() {
-    return repliedUsers.length === playerCnt;
-}
-
-function initHandlers() {
-    ServerCommService.addRequestHandler(
-        MESSAGE_TYPE.CS_RESTART_GAME,
-        startGame
-    );
-    ServerCommService.addRequestHandler(
-        MESSAGE_TYPE.CS_SELECT_UNIT,
-        selectUnit
-    );
-    ServerCommService.addRequestHandler(
-        MESSAGE_TYPE.CS_CLAIM_MOVE,
-        moveUnit
-    );
-}
-
-function init() {
-    startGame({ playerCnt: 2, mode: 1 }, 0);
-}
-
-function startGame(params, room) {
-    // clear parameters
-    playerCnt = params.playerCnt;
-    mode = params.mode;
-    playerList = [];
-    targetList = [];
-    endflags = [];
-    ranking = [];
-    gameEndFlag = false;
-    players = [];
-    step = 0;
-    fff = -1;
-
-    /**
-     * The commented players(1, 4, 3, 6) is neccessary to test the end of players' moves.
-     * For instance commented player1 variable is similar to uncommented player4 variable. Only last two points are different.
-     * And the commented player4 variable is similar to uncommented player1 variable. Only last point is different.
-     * So, if you start the game the player1 and player4 can reach their target place(opposite side) quickly.
-     * The same goes for player3 and player6.
-     */
-
-    //starting positions of players
-    var player1 = [[8, -4, -4], [7, -4, -3], [7, -3, -4], [6, -4, -2], [6, -3, -3], [6, -2, -4], [5, -4, -1], [5, -3, -2], [5, -2, -3], [5, -1, -4]];
-    // var player1 = [[-8, 4, 4], [-7, 4, 3], [-7, 3, 4], [-6, 4, 2], [-6, 3, 3], [-6, 2, 4], [-5, 4, 1], [-5, 3, 2], [-4, 2, 2], [-4, 1, 3]];
-    var player2 = [[4, -8, 4], [3, -7, 4], [4, -7, 3], [2, -6, 4], [3, -6, 3], [4, -6, 2], [1, -5, 4], [2, -5, 3], [3, -5, 2], [4, -5, 1]];
-    // var player2 = [[-4, 8, -4], [-3, 7, -4], [-4, 7, -3], [-2, 6, -4], [-3, 6, -3], [-4, 6, -2], [-1, 5, -4], [-2, 5, -3], [-3, 5, -2], [-4, 4, 0]];
-    var player3 = [[-4, -4, 8], [-4, -3, 7], [-3, -4, 7], [-4, -2, 6], [-3, -3, 6], [-2, -4, 6], [-4, -1, 5], [-3, -2, 5], [-2, -3, 5], [-1, -4, 5]];
-    // var player3 = [[4, 4, -8], [4, 3, -7], [3, 4, -7], [4, 2, -6], [3, 3, -6], [2, 4, -6], [4, 1, -5], [3, 2, -5], [2, 3, -5], [1, 3, -4]];
-    var player4 = [[-8, 4, 4], [-7, 4, 3], [-7, 3, 4], [-6, 4, 2], [-6, 3, 3], [-6, 2, 4], [-5, 4, 1], [-5, 3, 2], [-5, 2, 3], [-5, 1, 4]];
-    // var player4 = [[8, -4, -4], [7, -4, -3], [7, -3, -4], [6, -4, -2], [6, -3, -3], [6, -2, -4], [5, -4, -1], [5, -3, -2], [4, -2, -2], [5, -1, -4]];
-    var player5 = [[-4, 8, -4], [-3, 7, -4], [-4, 7, -3], [-2, 6, -4], [-3, 6, -3], [-4, 6, -2], [-1, 5, -4], [-2, 5, -3], [-3, 5, -2], [-4, 5, -1]];
-    // var player5 = [[4, -8, 4], [3, -7, 4], [4, -7, 3], [2, -6, 4], [3, -6, 3], [4, -6, 2], [1, -5, 4], [2, -5, 3], [3, -5, 2], [4, -4, 0]];
-    var player6 = [[4, 4, -8], [4, 3, -7], [3, 4, -7], [4, 2, -6], [3, 3, -6], [2, 4, -6], [4, 1, -5], [3, 2, -5], [2, 3, -5], [1, 4, -5]];
-    // var player6 = [[-4, -4, 8], [-4, -3, 7], [-3, -4, 7], [-4, -2, 6], [-3, -3, 6], [-2, -4, 6], [-4, -1, 5], [-3, -2, 5], [-2, -3, 5], [-1, -3, 4]];
-    //target positions of players
-    var target1 = [[-8, 4, 4], [-7, 4, 3], [-7, 3, 4], [-6, 4, 2], [-6, 3, 3], [-6, 2, 4], [-5, 4, 1], [-5, 3, 2], [-5, 2, 3], [-5, 1, 4]];
-    var target2 = [[-4, 8, -4], [-3, 7, -4], [-4, 7, -3], [-2, 6, -4], [-3, 6, -3], [-4, 6, -2], [-1, 5, -4], [-2, 5, -3], [-3, 5, -2], [-4, 5, -1]];
-    var target3 = [[4, 4, -8], [4, 3, -7], [3, 4, -7], [4, 2, -6], [3, 3, -6], [2, 4, -6], [4, 1, -5], [3, 2, -5], [2, 3, -5], [1, 4, -5]];
-    var target4 = [[8, -4, -4], [7, -4, -3], [7, -3, -4], [6, -4, -2], [6, -3, -3], [6, -2, -4], [5, -4, -1], [5, -3, -2], [5, -2, -3], [5, -1, -4]];
-    var target5 = [[4, -8, 4], [3, -7, 4], [4, -7, 3], [2, -6, 4], [3, -6, 3], [4, -6, 2], [1, -5, 4], [2, -5, 3], [3, -5, 2], [4, -5, 1]];
-    var target6 = [[-4, -4, 8], [-4, -3, 7], [-3, -4, 7], [-4, -2, 6], [-3, -3, 6], [-2, -4, 6], [-4, -1, 5], [-3, -2, 5], [-2, -3, 5], [-1, -4, 5]];
-    switch (playerCnt) {
-        case 2:
-            playerList.push(copyObject(player1));
-            playerList.push(copyObject(player4));
-            targetList.push(copyObject(target1));
-            targetList.push(copyObject(target4));
-            break;
-        case 3:
-            if (mode === 1) {
-                playerList.push(copyObject(player1));
-                playerList.push(copyObject(player3));
-                playerList.push(copyObject(player5));
-                targetList.push(copyObject(target1));
-                targetList.push(copyObject(target3));
-                targetList.push(copyObject(target5));
-            } else if (mode === 2) {
-                ////////////
-                playerList.push(copyObject(player1));
-                playerList.push(copyObject(player2));
-                playerList.push(copyObject(player3));
-                playerList.push(copyObject(player4));
-                playerList.push(copyObject(player5));
-                playerList.push(copyObject(player6));
-                targetList.push(copyObject(target1));
-                targetList.push(copyObject(target2));
-                targetList.push(copyObject(target3));
-                targetList.push(copyObject(target4));
-                targetList.push(copyObject(target5));
-                targetList.push(copyObject(target6));
-            }
-            break;
-        case 4:
-            playerList.push(copyObject(player1));
-            playerList.push(copyObject(player3));
-            playerList.push(copyObject(player4));
-            playerList.push(copyObject(player6));
-            targetList.push(copyObject(target1));
-            targetList.push(copyObject(target3));
-            targetList.push(copyObject(target4));
-            targetList.push(copyObject(target6));
-            break;
-        case 5:
-            playerList.push(copyObject(player1));
-            playerList.push(copyObject(player2));
-            playerList.push(copyObject(player3));
-            playerList.push(copyObject(player4));
-            playerList.push(copyObject(player5));
-            targetList.push(copyObject(target1));
-            targetList.push(copyObject(target2));
-            targetList.push(copyObject(target3));
-            targetList.push(copyObject(target4));
-            targetList.push(copyObject(target5));
-            break;
-        case 6:
-            playerList.push(copyObject(player1));
-            playerList.push(copyObject(player2));
-            playerList.push(copyObject(player3));
-            playerList.push(copyObject(player4));
-            playerList.push(copyObject(player5));
-            playerList.push(copyObject(player6));
-            targetList.push(copyObject(target1));
-            targetList.push(copyObject(target2));
-            targetList.push(copyObject(target3));
-            targetList.push(copyObject(target4));
-            targetList.push(copyObject(target5));
-            targetList.push(copyObject(target6));
-            break;
-        default:
-            playerList.push(copyObject(player1));
-            playerList.push(copyObject(player4));
-            targetList.push(copyObject(target1));
-            targetList.push(copyObject(target4));
-            break;
-    }
-    Array(playerCnt).fill().forEach(function (e, i) {
-        endflags.push(false);
-        players.push(i);
-    });
-    startList = copyObject(playerList);
-    currentPlayer = 0;
-    ServerCommService.send(
-        MESSAGE_TYPE.SC_START_GAME,
-        {
-            playerList: playerList,
-            user: currentPlayer,
-        },
-        currentPlayer,
-    );
-    timeHandlers.forEach(function (e) {
-        clearTimeout(e);
-    });
-    timeHandlers = [];
-    askUser(currentPlayer);
-}
-
-function isEmpty(unit) {
-    for (var i = 0; i < playerList.length; i++) {
-        if (isIn2DArray(playerList[i], unit)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-function getAvailableCells(unit) {
-    if (s === 0) {
-        s += 1;
-        Array(6).fill().forEach(function (e, i) {
-            var newCell = sumArrays(unit, cubic.NEIGHBOR_OFFSETS[i]);
-            if (isIn2DArray(panel, newCell)) {
-                if (isEmpty(newCell) && !isIn2DArray(availableCells, newCell)) {
-                    availableCells.push(copyObject(newCell));
-                } else if (isIn2DArray(availableCells, newCell)) {
-
-                } else {
-                    getAvailableCells(sumArrays(newCell, cubic.NEIGHBOR_OFFSETS[i]));
-                }
-            }
-        });
-    }
-    else {
-        if (isEmpty(unit) && isIn2DArray(panel, unit)) {
-            if (!isIn2DArray(availableCells, unit)) {
-                availableCells.push(copyObject(unit));
-                Array(6).fill().forEach(function (e, i) {
-                    var newCell = sumArrays(unit, cubic.NEIGHBOR_OFFSETS[i]);
-                    if (isIn2DArray(panel, newCell)) {
-                        if (!isEmpty(newCell)) {
-                            getAvailableCells(sumArrays(newCell, cubic.NEIGHBOR_OFFSETS[i]));
-                        }
-                    }
-                });
-            }
-        }
-    }
-}
-
-function askUser(user) {
-    trace("ask user to claim put stone : " + user);
-    step = 0;
-    // if (mode === 2) {
-    //     fff = (fff + 1) % (players.length * 2);
-    //     step = Math.floor(fff / players.length);
-    // }
-    ServerCommService.send(
-        MESSAGE_TYPE.SC_ASK_USER,
-        {
-            user: user,
-            // step: step,
-        },
-        1,
-    );
-
-    TimeoutManager.setNextTimeout(function () {
-        var r = Math.floor(Math.random() * 10);
-        s = 0;
-        availableCells = [];
-        currentUnit = currentUnit.length === 0 ? playerList[user + step * playerCnt][r] : currentUnit;
-        getAvailableCells(currentUnit);
-        exceptAvailableCells();
-        var random = Math.floor(Math.random() * availableCells.length);
-        moveUnit({ currentUnit: currentUnit, targetCell: availableCells[random], user: user }, 1);
-    });
-    timeHandlers.push(TimeoutManager.timeoutHandler);
-}
-
-function exceptAvailableCells() {
-    var result = [];
-    for (var i = 0; i < availableCells.length; i++) {
-        if (isIn2DArray(targetList[currentPlayer + step * playerCnt], currentUnit)) {
-            if (isIn2DArray(targetList[currentPlayer + step * playerCnt], availableCells[i])) {
-                result.push(copyObject(availableCells[i]));
-            }
-        } else {
-            var flag = false;
-            for (var j = 0; j < targetList.length; j++) {
-                if (j !== currentPlayer + step * playerCnt && isIn2DArray(targetList[j], availableCells[i]) && !isIn2DArray(startList[currentPlayer + step * playerCnt], availableCells[i])) {
-                    flag = true;
-                    break;
-                }
-                if (j !== currentPlayer + step * playerCnt && isIn2DArray(startList[j], availableCells[i]) && !isIn2DArray(targetList[currentPlayer + step * playerCnt], availableCells[i])) {
-                    flag = true;
-                    break;
-                }
-            }
-            if (!flag) {
-                result.push(copyObject(availableCells[i]));
-            }
-        }
-    }
-    availableCells = copyObject(result);
-}
-
-function selectUnit(params, room) {
-    currentUnit = [params.u, params.v, params.w];
-    step = params.step;
-    availableCells = [];
-    s = 0;
-    getAvailableCells(currentUnit);
-    exceptAvailableCells();
-    ServerCommService.send(
-        MESSAGE_TYPE.SC_AVAIL_CELLS,
-        {
-            availableCells: availableCells,
-            user: currentPlayer,
-        },
-        1
-    );
-}
-
 function replaceSubarray(arr, subarr, replacement) {
     for (var i = 0; i < arr.length; i++) {
         if (arr[i].toString() === subarr.toString()) {
@@ -390,95 +110,107 @@ function arraysEqual(arr1, arr2) {
     return true;
 }
 
-function moveUnit(params, room) {
-    TimeoutManager.clearNextTimeout();
-    timeHandlers.splice(timeHandlers.indexOf(TimeoutManager.timeoutHandler), 1);
-    currentUnit = copyObject(params.currentUnit);
-    if (params.targetCell === undefined) {
-        currentPlayer = setNextUser(currentPlayer);
-        askUser(currentPlayer);
-        players = [];
-        Array(playerCnt).fill().forEach(function (e, i) {
-            if (!endflags[i]) {
-                players.push(i);
-            }
-        });
-        currentUnit = [];
-        targetCell = [];
-        return;
-    }
-    targetCell = copyObject(params.targetCell);
-    // if (!markUserReplied(user)) {
-    //     return;
-    // }
-    playerList[currentPlayer + playerCnt * step] = replaceSubarray(playerList[currentPlayer + playerCnt * step], currentUnit, targetCell);
-    if (arraysEqual(playerList[currentPlayer], targetList[currentPlayer])) {
-        if (mode === 2) {
-            if (arraysEqual(playerList[currentPlayer + playerCnt], targetList[currentPlayer + playerCnt])) {
-                endflags[currentPlayer] = true;
-                ranking.push(currentPlayer);
-                fff = -1;
-            }
-        } else {
-            endflags[currentPlayer] = true;
-            ranking.push(currentPlayer);
+if (!trace) {
+    var trace = function () {
+        console.trace(JSON.stringify(arguments));
+    };
+}
+
+function initHandlers() {
+    ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_RESTART_GAME, startGame);
+    ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_SELECT_UNIT, selectUnit);
+    ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_CLAIM_MOVE, moveUnit);
+}
+
+function getTile(x, y, z) {
+    var result = null;
+    for (var i = 0; i < tiles.length; i++) {
+        if (tiles[i].x === x && tiles[i].y === y && tiles[i].z === z) {
+            result = copyObject(tiles[i]);
+            break;
         }
     }
-    gameOver();
-    var entered = false;
-    if (!isIn2DArray(targetList[currentPlayer + playerCnt * step], currentUnit) && isIn2DArray(targetList[currentPlayer + playerCnt * step], targetCell)) {
-        entered = true;
+    return result;
+}
+
+function isEmpty(x, y, z) {
+    if (getTile(x, y, z) === null)
+        return true;
+    else return false;
+}
+
+function isTop(x, y, z) {
+    for (var i = 10; i > z; i--) {
+        if (!isEmpty(x, y, i))
+            return false;
     }
-    ServerCommService.send(
-        MESSAGE_TYPE.SC_MOVE_UNIT,
-        {
-            result: true,
-            finish: endflags[currentPlayer],
-            user: currentPlayer,
-            currentUnit: currentUnit,
-            targetCell: targetCell,
-            ranking: ranking,
-            entered: entered,
-        },
-        1
-    );
-    currentUnit = [];
-    targetCell = [];
-    if (gameEndFlag) {
-        ServerCommService.send(
-            MESSAGE_TYPE.SC_END_GAME,
-            {
-                ranking: ranking,
-            },
-            1
-        );
-    } else {
-        currentPlayer = setNextUser(currentPlayer);
-        askUser(currentPlayer);
-        players = [];
-        Array(playerCnt).fill().forEach(function (e, i) {
-            if (!endflags[i]) {
-                players.push(i);
-            }
-        });
+    return true;
+}
+
+function isVisible(x, y, z) {
+    var a = false; var b = false; var c = false; var d = false;
+    var E = isTop(x, y, z);
+    if (!E)
+        return false;
+    var A = isTop(x - 1, y - 1, z); if (A) a = true;
+    var B = isTop(x - 1, y, z); if (B) { a = true; b = true; }
+    var C = isTop(x - 1, y + 1, z); if (C) b = true;
+    var D = isTop(x, y - 1, z); if (D) { a = true; c = true; }
+    var F = isTop(x, y + 1, z); if (F) { b = true; d = true; }
+    var G = isTop(x + 1, y - 1, z); if (G) c = true;
+    var H = isTop(x + 1, y, z); if (H) { c = true; d = true; }
+    var I = isTop(x + 1, y + 1, z); if (I) d = true;
+    if (a && b && c && d)
+        return false;
+    else return true;
+}
+
+function getAvailableTiles() {
+    availableTiles = [];
+    for (var i = 0; i < tiles.length; i++) {
+        var tile = tiles[i];
+        if (isVisible(tile.x, tile.y, tile.z))
+            if (isEmpty(tile.x, tile.y - 2, tile.z) && isEmpty(tile.x, tile.y + 2, tile.z))
+                availableTiles.push(tile);
     }
 }
 
-function setNextUser(user) {
-    var index = players.indexOf(user);
-    var next = (index + 1) % players.length;
-    return players[next];
+function isMatch(tile1Type, tile2Type) {
+    if (tile1Type === tile2Type)
+        return true;
+    else return false;
+}
+
+function getAvailableMatches() {
+    availableMatches = [];
+    for (var i = 0; i < availableTiles.length; i++)
+        for (var j = i + 1; j < availableTiles.length; j++)
+            if (isMatch(availableTiles[i].type, availableTiles[j].type))
+                availableMatches.push([availableTiles[i], availableTiles[j]]);
+}
+
+function isWinOrLose() {
+    if (tiles.length === 0)
+        return WIN;
+    if (tiles.length > 0 && availableMatches.length === 0)
+        return LOSE;
+    else return NOT_END;
+}
+
+function init() {
+    startGame();
+}
+
+function startGame() { }
+
+function selectUnit() { }
+
+function moveUnit(params, room) {
+    // TimeoutManager.clearNextTimeout();
 }
 
 // finish the game or mission
 function gameOver() {
-    if (ranking.length === playerCnt - 1) {
-        for (var i = 0; i < playerCnt; i++) {
-            if (ranking.indexOf(i) === -1)
-                ranking.push(i);
-        }
-        gameEndFlag = true;
-    }
 }
 
 export const ServerCommService = {
@@ -490,7 +222,6 @@ export const ServerCommService = {
         this.callbackMap[messageType] = callback;
     },
     send(messageType, data, users) {
-
         // TODO: Make fake code here to send message to client side
         // Added timeout bc there are times that UI are not updated properly if we send next message immediately
         // If we move to backend, we can remove this timeout
@@ -521,7 +252,7 @@ const TimeoutManager = {
             function () {
                 return callback();
             },
-            timeLimit ? timeLimit * 1000 : (TIME_LIMIT) * 1000
+            timeLimit ? timeLimit * 1000 : TIME_LIMIT * 1000
         );
     },
 

@@ -2,6 +2,13 @@ export const TIME_LIMIT = 30;
 export const COINS_LIMIT = 30;
 export const ALARM_LIMIT = 3;
 export const BLOCKSIZE = 75;
+export const TOTAL_TILES = 144;
+export const TILE_SIZE = [14, 20];
+export const TILES_PER_ROW = 39;
+export const TILES_PER_COLUMN = 19;
+export const WIN = "WIN";
+export const LOSE = "LOSE";
+export const NOT_END = "NOT_END";
 
 export const INST_URL = "http://www.ludoteka.com/international_draughts.html";
 export const YOUTUBE_URL =
