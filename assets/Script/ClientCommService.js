@@ -11,7 +11,7 @@ export const ClientCommService = {
 
         switch (messageType) {
             case MESSAGE_TYPE.SC_START_GAME:
-                GameScene.start1(params.playerList, params.user);
+                GameScene.start1(params.tiles, params.moves);
                 break;
             case MESSAGE_TYPE.SC_ASK_USER:
                 GameScene.askUser(params.user);
@@ -32,8 +32,8 @@ export const ClientCommService = {
         ServerCommService.onReceiveMessage(messageType, data, room);
     },
 
-    sendSelectUnit(u, v, w, user, step) {
-        this.send(MESSAGE_TYPE.CS_SELECT_UNIT, { u, v, w, user, step }, 1);
+    sendCompareTiles(compareTiles) {
+        this.send(MESSAGE_TYPE.CS_COMPARE_TILES, { compareTiles }, 1);
     },
 
     sendClaimMove(currentUnit, targetCell, user) {

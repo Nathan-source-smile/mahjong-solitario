@@ -1,6 +1,6 @@
 import { MESSAGE_TYPE, ROUNDS } from "../Common/Messages";
 import { ClientCommService } from "../ClientCommService";
-import { TIME_LIMIT, ALARM_LIMIT, TOTAL_TILES, WIN, LOSE, NOT_END } from "../Common/Constants";
+import { TIME_LIMIT, ALARM_LIMIT, TOTAL_TILES, WIN, LOSE, NOT_END, TOTAL_MOVEMENT } from "../Common/Constants";
 
 //--------Defining global variables----------
 var tile = {
@@ -12,48 +12,12 @@ var tile = {
     z: -1, // 0~9
 }
 var coordinates = [];
-for (var i = 0; i < TOTAL_TILES; i++) {
-    var z = Math.floor(i / 36);
-    var x = Math.floor((i % 36) / 9) * 2;
-    var y = Math.floor((i % 36) % 9) * 2;
-    coordinates.push({ x: x, y: y, z: z });
-}
-coordinates.sort(function (a, b) {
-    return Math.floor(Math.random() * 3) - 1;
-});
 var tiles = [];
-for (var i = 0; i < TOTAL_TILES; i++) {
-    var temp = [];
-    temp = copyObject(tile);
-    temp.type = Math.floor(i / 4);
-    if (temp.type >= 0 && temp.type <= 8) {
-        temp.semiType = 0;
-    } else if (temp.type >= 9 && temp.type <= 17) {
-        temp.semiType = 1;
-    } else if (temp.type >= 18 && temp.type <= 26) {
-        temp.semiType = 2;
-    } else if (temp.type >= 27 && temp.type <= 28) {
-        switch (temp.type) {
-            case 27:
-                temp.semiType = 3 + (Math.floor(i % 4) + 1) / 10;
-                break;
-            case 28:
-                temp.semiType = 4 + (Math.floor(i % 4) + 1) / 10;
-                break;
-            default:
-                0;
-        }
-    } else if (temp.type >= 29 && temp.type <= 35) {
-        temp.semiType = 5 + (temp.type - 29);
-    }
-    temp.available = false;
-    temp.x = coordinates[i].x; // 0~18
-    temp.y = coordinates[i].y; // 0~38
-    temp.z = coordinates[i].z; // 0~9
-    tiles.push(temp);
-}
 var availableTiles = [];
 var availableMatches = [];
+var moves = TOTAL_MOVEMENT;
+var compareTiles = [];
+var gameResult = null;
 //--------Defining global variables----------
 
 function copyObject(object) {
@@ -118,7 +82,7 @@ if (!trace) {
 
 function initHandlers() {
     ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_RESTART_GAME, startGame);
-    ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_SELECT_UNIT, selectUnit);
+    ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_COMPARE_TILES, compareTilesFunction);
     ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_CLAIM_MOVE, moveUnit);
 }
 
@@ -140,7 +104,7 @@ function isEmpty(x, y, z) {
 }
 
 function isTop(x, y, z) {
-    for (var i = 10; i > z; i--) {
+    for (var i = 6; i > z; i--) {
         if (!isEmpty(x, y, i))
             return false;
     }
@@ -161,8 +125,8 @@ function isVisible(x, y, z) {
     var H = isTop(x + 1, y, z); if (H) { c = true; d = true; }
     var I = isTop(x + 1, y + 1, z); if (I) d = true;
     if (a && b && c && d)
-        return false;
-    else return true;
+        return true;
+    else return false;
 }
 
 function getAvailableTiles() {
@@ -201,9 +165,79 @@ function init() {
     startGame();
 }
 
-function startGame() { }
+function startGame() {
 
-function selectUnit() { }
+    // init values
+    gameResult = null;
+    coordinates = [];
+    for (var i = 0; i < TOTAL_TILES; i++) {
+        var z = Math.floor(i / 36);
+        var x = Math.floor((i % 36) / 6) * 2;
+        var y = Math.floor((i % 36) % 6) * 2;
+        coordinates.push({ x: x, y: y, z: z });
+    }
+    coordinates.sort(function (a, b) {
+        return Math.floor(Math.random() * 3) - 1;
+    });
+    tiles = [];
+    for (var i = 0; i < TOTAL_TILES; i++) {
+        var temp = [];
+        temp = copyObject(tile);
+        temp.type = Math.floor(i / 4);
+        if (temp.type >= 0 && temp.type <= 8) {
+            temp.semiType = 0;
+        } else if (temp.type >= 9 && temp.type <= 17) {
+            temp.semiType = 1;
+        } else if (temp.type >= 18 && temp.type <= 26) {
+            temp.semiType = 2;
+        } else if (temp.type >= 27 && temp.type <= 28) {
+            switch (temp.type) {
+                case 27:
+                    temp.semiType = 3 + (Math.floor(i % 4) + 1) / 10;
+                    break;
+                case 28:
+                    temp.semiType = 4 + (Math.floor(i % 4) + 1) / 10;
+                    break;
+                default:
+                    0;
+            }
+        } else if (temp.type >= 29 && temp.type <= 35) {
+            temp.semiType = 5 + (temp.type - 29);
+        }
+        temp.available = false;
+        temp.x = coordinates[i].x; // 0~18
+        temp.y = coordinates[i].y; // 0~38
+        temp.z = coordinates[i].z; // 0~9
+        tiles.push(temp);
+    }
+    availableTiles = [];
+    availableMatches = [];
+    moves = TOTAL_MOVEMENT;
+
+    //send tiles
+    ServerCommService.send(
+        MESSAGE_TYPE.SC_START_GAME,
+        { tiles: tiles, availableTiles: availableTiles, moves: moves },
+        [0],
+    );
+}
+
+function compareTilesFunction(params, room) {
+    compareTiles = params.compareTiles;
+    moves = moves - 1;
+    var succeed = false;
+    if (isMatch(compareTiles[0].type, compareTiles[1].type)) {
+        deleteTiles(compareTiles);
+        succeed = true;
+        getAvailableTiles();
+    }
+    ServerCommService.send(
+        MESSAGE_TYPE.SC_DELETE_TILES,
+        { tiles: tiles, availableTiles: availableTiles, moves: moves, succeed: succeed },
+        [0],
+    );
+    isWinOrLose();
+}
 
 function moveUnit(params, room) {
     // TimeoutManager.clearNextTimeout();
@@ -274,13 +308,5 @@ export const FakeServer = {
 
     startGame() {
         startGame();
-    },
-    //ask user to put stone
-    askUser(currentPlayer) {
-        askUser(currentPlayer);
-    },
-    // finish the game or mission
-    gameOver() {
-        gameOver();
     },
 };
