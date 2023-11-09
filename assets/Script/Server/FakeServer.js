@@ -1,6 +1,6 @@
 import { MESSAGE_TYPE, ROUNDS } from "../Common/Messages";
 import { ClientCommService } from "../ClientCommService";
-import { TIME_LIMIT, ALARM_LIMIT, TOTAL_TILES, WIN, LOSE, NOT_END, TOTAL_MOVEMENT } from "../Common/Constants";
+import { TIME_LIMIT, ALARM_LIMIT, TOTAL_TILES, WIN, LOSE, NOT_END, TOTAL_MOVEMENT, TOTAL_TIME } from "../Common/Constants";
 
 //--------Defining global variables----------
 var tile = {
@@ -18,6 +18,7 @@ var availableMatches = [];
 var moves = TOTAL_MOVEMENT;
 var compareTiles = [];
 var gameResult = null;
+var timeTracker = null;
 //--------Defining global variables----------
 
 function copyObject(object) {
@@ -26,52 +27,6 @@ function copyObject(object) {
         return object;
     }
     return JSON.parse(JSON.stringify(object));
-}
-
-function isIn2DArray(arr, val) {
-    for (var i = 0; i < arr.length; i++) {
-        // if (JSON.stringify(arr[i]) === JSON.stringify(val)) {
-        //     return true;
-        // }
-        if (arr[i][0] === val[0] && arr[i][1] === val[1] && arr[i][2] === val[2]) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function sumArrays(arr1, arr2) {
-    var sum = [];
-
-    for (var i = 0; i < arr1.length; i++) {
-        sum.push(arr1[i] + arr2[i]);
-    }
-
-    return sum;
-}
-
-function replaceSubarray(arr, subarr, replacement) {
-    for (var i = 0; i < arr.length; i++) {
-        if (arr[i].toString() === subarr.toString()) {
-            arr[i] = replacement;
-            break;
-        }
-    }
-    return arr;
-}
-
-function arraysEqual(arr1, arr2) {
-    if (arr1.length !== arr2.length) {
-        return false;
-    }
-    arr1 = arr1.sort();
-    arr2 = arr2.sort();
-    for (var i = 0; i < arr1.length; i++) {
-        if (arr1[i].toString() !== arr2[i].toString()) {
-            return false;
-        }
-    }
-    return true;
 }
 
 if (!trace) {
@@ -83,7 +38,6 @@ if (!trace) {
 function initHandlers() {
     ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_RESTART_GAME, startGame);
     ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_COMPARE_TILES, compareTilesFunction);
-    ServerCommService.addRequestHandler(MESSAGE_TYPE.CS_CLAIM_MOVE, moveUnit);
 }
 
 function getTile(x, y, z) {
@@ -104,38 +58,59 @@ function isEmpty(x, y, z) {
 }
 
 function isTop(x, y, z) {
-    for (var i = 6; i > z; i--) {
-        if (!isEmpty(x, y, i))
-            return false;
-    }
-    return true;
+    // for (var i = 6; i > z; i--) {
+    //     if (!isEmpty(x, y, i))
+    //         return false;
+    // }
+    // return true;
+    if (isEmpty(x, y, z + 1))
+        return true;
+    else return false;
 }
 
-function isVisible(x, y, z) {
-    var a = false; var b = false; var c = false; var d = false;
-    var E = isTop(x, y, z);
+function isSelectable(x, y, z) {
+    var a = true; var b = true; var c = true; var d = true;
+    var E = isEmpty(x, y, z + 1);
     if (!E)
         return false;
-    var A = isTop(x - 1, y - 1, z); if (A) a = true;
-    var B = isTop(x - 1, y, z); if (B) { a = true; b = true; }
-    var C = isTop(x - 1, y + 1, z); if (C) b = true;
-    var D = isTop(x, y - 1, z); if (D) { a = true; c = true; }
-    var F = isTop(x, y + 1, z); if (F) { b = true; d = true; }
-    var G = isTop(x + 1, y - 1, z); if (G) c = true;
-    var H = isTop(x + 1, y, z); if (H) { c = true; d = true; }
-    var I = isTop(x + 1, y + 1, z); if (I) d = true;
+    var A = !isEmpty(x - 1, y - 1, z + 1); if (A) a = false;
+    var B = !isEmpty(x - 1, y, z + 1); if (B) { a = false; b = false; }
+    var C = !isEmpty(x - 1, y + 1, z + 1); if (C) b = false;
+    var D = !isEmpty(x, y - 1, z + 1); if (D) { a = false; c = false; }
+    var F = !isEmpty(x, y + 1, z + 1); if (F) { b = false; d = false; }
+    var G = !isEmpty(x + 1, y - 1, z + 1); if (G) c = false;
+    var H = !isEmpty(x + 1, y, z + 1); if (H) { c = false; d = false; }
+    var I = !isEmpty(x + 1, y + 1, z + 1); if (I) d = false;
     if (a && b && c && d)
         return true;
     else return false;
+}
+
+function isLeftFree(tile) {
+    if (isEmpty(tile.x, tile.y - 2, tile.z) && isEmpty(tile.x - 1, tile.y - 2, tile.z) && isEmpty(tile.x + 1, tile.y - 2, tile.z))
+        return true;
+    else return false;
+
+}
+
+function isRightFree(tile) {
+    if (isEmpty(tile.x, tile.y + 2, tile.z) && isEmpty(tile.x - 1, tile.y + 2, tile.z) && isEmpty(tile.x + 1, tile.y + 2, tile.z))
+        return true;
+    else return false;
+
 }
 
 function getAvailableTiles() {
     availableTiles = [];
     for (var i = 0; i < tiles.length; i++) {
         var tile = tiles[i];
-        if (isVisible(tile.x, tile.y, tile.z))
-            if (isEmpty(tile.x, tile.y - 2, tile.z) && isEmpty(tile.x, tile.y + 2, tile.z))
+        if (isSelectable(tile.x, tile.y, tile.z))
+            if (isLeftFree(tile) || isRightFree(tile)) {
                 availableTiles.push(tile);
+                tiles[i].available = true;
+            } else {
+                tiles[i].available = false;
+            }
     }
 }
 
@@ -151,14 +126,42 @@ function getAvailableMatches() {
         for (var j = i + 1; j < availableTiles.length; j++)
             if (isMatch(availableTiles[i].type, availableTiles[j].type))
                 availableMatches.push([availableTiles[i], availableTiles[j]]);
+
+    console.log("avl", availableMatches.length);
 }
 
 function isWinOrLose() {
     if (tiles.length === 0)
-        return WIN;
-    if (tiles.length > 0 && availableMatches.length === 0)
-        return LOSE;
-    else return NOT_END;
+        gameResult = WIN;
+    else {
+        if (tiles.length > 0 && availableMatches.length === 0) {
+            console.log("dddraw");
+            while (availableMatches.length === 0) {
+                // shuffle the tile positions in place
+                for (var i = tiles.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var tempX = tiles[i].x;
+                    var tempY = tiles[i].y;
+                    var tempZ = tiles[i].z;
+                    tiles[i].x = tiles[j].x;
+                    tiles[i].y = tiles[j].y;
+                    tiles[i].z = tiles[j].z;
+                    tiles[j].x = tempX;
+                    tiles[j].y = tempY;
+                    tiles[j].z = tempZ;
+                }
+                getAvailableTiles();
+                getAvailableMatches();
+            }
+            ServerCommService.send(
+                MESSAGE_TYPE.SC_DRAW_BOARD,
+                { tiles: tiles, availableTiles: availableTiles, moves: moves, succeed: false },
+                [0],
+            );
+        }
+        if (moves === 0)
+            gameResult = LOSE;
+    }
 }
 
 function init() {
@@ -169,13 +172,162 @@ function startGame() {
 
     // init values
     gameResult = null;
-    coordinates = [];
-    for (var i = 0; i < TOTAL_TILES; i++) {
-        var z = Math.floor(i / 36);
-        var x = Math.floor((i % 36) / 6) * 2;
-        var y = Math.floor((i % 36) % 6) * 2;
-        coordinates.push({ x: x, y: y, z: z });
-    }
+    // coordinates = [];
+    // for (var i = 0; i < TOTAL_TILES; i++) {
+    //     var z = Math.floor(i / 36);
+    //     var x = Math.floor((i % 36) / 6) * 2;
+    //     var y = Math.floor((i % 36) % 6) * 2;
+    //     coordinates.push({ x: x, y: y, z: z });
+    // }
+    coordinates = [
+        { x: 0, y: 2, z: 0 },
+        { x: 0, y: 4, z: 0 },
+        { x: 0, y: 6, z: 0 },
+        { x: 0, y: 8, z: 0 },
+        { x: 0, y: 10, z: 0 },
+        { x: 0, y: 12, z: 0 },
+        { x: 0, y: 14, z: 0 },
+        { x: 0, y: 16, z: 0 },
+        { x: 0, y: 18, z: 0 },
+        { x: 0, y: 20, z: 0 },
+        { x: 0, y: 22, z: 0 },
+        { x: 0, y: 24, z: 0 },
+        { x: 2, y: 6, z: 0 },
+        { x: 2, y: 8, z: 0 },
+        { x: 2, y: 10, z: 0 },
+        { x: 2, y: 12, z: 0 },
+        { x: 2, y: 14, z: 0 },
+        { x: 2, y: 16, z: 0 },
+        { x: 2, y: 18, z: 0 },
+        { x: 2, y: 20, z: 0 },
+        { x: 4, y: 4, z: 0 },
+        { x: 4, y: 6, z: 0 },
+        { x: 4, y: 8, z: 0 },
+        { x: 4, y: 10, z: 0 },
+        { x: 4, y: 12, z: 0 },
+        { x: 4, y: 14, z: 0 },
+        { x: 4, y: 16, z: 0 },
+        { x: 4, y: 18, z: 0 },
+        { x: 4, y: 20, z: 0 },
+        { x: 4, y: 22, z: 0 },
+        { x: 6, y: 2, z: 0 },
+        { x: 6, y: 4, z: 0 },
+        { x: 6, y: 6, z: 0 },
+        { x: 6, y: 8, z: 0 },
+        { x: 6, y: 10, z: 0 },
+        { x: 6, y: 12, z: 0 },
+        { x: 6, y: 14, z: 0 },
+        { x: 6, y: 16, z: 0 },
+        { x: 6, y: 18, z: 0 },
+        { x: 6, y: 20, z: 0 },
+        { x: 6, y: 22, z: 0 },
+        { x: 6, y: 24, z: 0 },
+        { x: 6, y: 26, z: 0 },
+        { x: 7, y: 0, z: 0 },
+        { x: 8, y: 2, z: 0 },
+        { x: 8, y: 4, z: 0 },
+        { x: 8, y: 6, z: 0 },
+        { x: 8, y: 8, z: 0 },
+        { x: 8, y: 10, z: 0 },
+        { x: 8, y: 12, z: 0 },
+        { x: 8, y: 14, z: 0 },
+        { x: 8, y: 16, z: 0 },
+        { x: 8, y: 18, z: 0 },
+        { x: 8, y: 20, z: 0 },
+        { x: 8, y: 22, z: 0 },
+        { x: 8, y: 24, z: 0 },
+        { x: 8, y: 26, z: 0 },
+        { x: 10, y: 4, z: 0 },
+        { x: 10, y: 6, z: 0 },
+        { x: 10, y: 8, z: 0 },
+        { x: 10, y: 10, z: 0 },
+        { x: 10, y: 12, z: 0 },
+        { x: 10, y: 14, z: 0 },
+        { x: 10, y: 16, z: 0 },
+        { x: 10, y: 18, z: 0 },
+        { x: 10, y: 20, z: 0 },
+        { x: 10, y: 22, z: 0 },
+        { x: 12, y: 6, z: 0 },
+        { x: 12, y: 8, z: 0 },
+        { x: 12, y: 10, z: 0 },
+        { x: 12, y: 12, z: 0 },
+        { x: 12, y: 14, z: 0 },
+        { x: 12, y: 16, z: 0 },
+        { x: 12, y: 18, z: 0 },
+        { x: 12, y: 20, z: 0 },
+        { x: 14, y: 2, z: 0 },
+        { x: 14, y: 4, z: 0 },
+        { x: 14, y: 6, z: 0 },
+        { x: 14, y: 8, z: 0 },
+        { x: 14, y: 10, z: 0 },
+        { x: 14, y: 12, z: 0 },
+        { x: 14, y: 14, z: 0 },
+        { x: 14, y: 16, z: 0 },
+        { x: 14, y: 18, z: 0 },
+        { x: 14, y: 20, z: 0 },
+        { x: 14, y: 22, z: 0 },
+        { x: 14, y: 24, z: 0 },
+        { x: 2, y: 8, z: 1 },
+        { x: 2, y: 10, z: 1 },
+        { x: 2, y: 12, z: 1 },
+        { x: 2, y: 14, z: 1 },
+        { x: 2, y: 16, z: 1 },
+        { x: 2, y: 18, z: 1 },
+        { x: 4, y: 8, z: 1 },
+        { x: 4, y: 10, z: 1 },
+        { x: 4, y: 12, z: 1 },
+        { x: 4, y: 14, z: 1 },
+        { x: 4, y: 16, z: 1 },
+        { x: 4, y: 18, z: 1 },
+        { x: 6, y: 8, z: 1 },
+        { x: 6, y: 10, z: 1 },
+        { x: 6, y: 12, z: 1 },
+        { x: 6, y: 14, z: 1 },
+        { x: 6, y: 16, z: 1 },
+        { x: 6, y: 18, z: 1 },
+        { x: 8, y: 8, z: 1 },
+        { x: 8, y: 10, z: 1 },
+        { x: 8, y: 12, z: 1 },
+        { x: 8, y: 14, z: 1 },
+        { x: 8, y: 16, z: 1 },
+        { x: 8, y: 18, z: 1 },
+        { x: 10, y: 8, z: 1 },
+        { x: 10, y: 10, z: 1 },
+        { x: 10, y: 12, z: 1 },
+        { x: 10, y: 14, z: 1 },
+        { x: 10, y: 16, z: 1 },
+        { x: 10, y: 18, z: 1 },
+        { x: 12, y: 8, z: 1 },
+        { x: 12, y: 10, z: 1 },
+        { x: 12, y: 12, z: 1 },
+        { x: 12, y: 14, z: 1 },
+        { x: 12, y: 16, z: 1 },
+        { x: 12, y: 18, z: 1 },
+        { x: 4, y: 10, z: 2 },
+        { x: 4, y: 12, z: 2 },
+        { x: 4, y: 14, z: 2 },
+        { x: 4, y: 16, z: 2 },
+        { x: 6, y: 10, z: 2 },
+        { x: 6, y: 12, z: 2 },
+        { x: 6, y: 14, z: 2 },
+        { x: 6, y: 16, z: 2 },
+        { x: 8, y: 10, z: 2 },
+        { x: 8, y: 12, z: 2 },
+        { x: 8, y: 14, z: 2 },
+        { x: 8, y: 16, z: 2 },
+        { x: 10, y: 10, z: 2 },
+        { x: 10, y: 12, z: 2 },
+        { x: 10, y: 14, z: 2 },
+        { x: 10, y: 16, z: 2 },
+        { x: 6, y: 12, z: 3 },
+        { x: 6, y: 14, z: 3 },
+        { x: 8, y: 12, z: 3 },
+        { x: 8, y: 14, z: 3 },
+        { x: 7, y: 13, z: 4 },
+    ]
+    coordinates.sort(function (a, b) {
+        return Math.floor(Math.random() * 3) - 1;
+    });
     coordinates.sort(function (a, b) {
         return Math.floor(Math.random() * 3) - 1;
     });
@@ -214,12 +366,21 @@ function startGame() {
     availableMatches = [];
     moves = TOTAL_MOVEMENT;
 
+    getAvailableTiles();
+    getAvailableMatches();
+
     //send tiles
     ServerCommService.send(
         MESSAGE_TYPE.SC_START_GAME,
         { tiles: tiles, availableTiles: availableTiles, moves: moves },
         [0],
     );
+
+    timeTracker = setTimeout(() => {
+        gameResult = LOSE;
+        gameOver();
+    }, TOTAL_TIME * 1000);
+
 }
 
 function compareTilesFunction(params, room) {
@@ -227,24 +388,41 @@ function compareTilesFunction(params, room) {
     moves = moves - 1;
     var succeed = false;
     if (isMatch(compareTiles[0].type, compareTiles[1].type)) {
-        deleteTiles(compareTiles);
+        deleteTile(compareTiles[0]);
+        deleteTile(compareTiles[1]);
         succeed = true;
         getAvailableTiles();
+        getAvailableMatches();
     }
     ServerCommService.send(
-        MESSAGE_TYPE.SC_DELETE_TILES,
+        MESSAGE_TYPE.SC_DRAW_BOARD,
         { tiles: tiles, availableTiles: availableTiles, moves: moves, succeed: succeed },
         [0],
     );
     isWinOrLose();
+    if (gameResult !== null) {
+        clearTimeout(timeTracker);
+        gameOver();
+    }
 }
 
-function moveUnit(params, room) {
-    // TimeoutManager.clearNextTimeout();
+function deleteTile(tile) {
+    console.log("tile", tile);
+    tiles = tiles.filter(function (item) {
+        if (item.x === tile.x && item.y === tile.y && item.z === tile.z) {
+        } else {
+            return item;
+        }
+    });
 }
 
 // finish the game or mission
 function gameOver() {
+    ServerCommService.send(
+        MESSAGE_TYPE.SC_END_GAME,
+        { gameResult: gameResult },
+        [0],
+    );
 }
 
 export const ServerCommService = {

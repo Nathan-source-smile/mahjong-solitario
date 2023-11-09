@@ -34,10 +34,13 @@
     "_components": [
       {
         "__id__": 14
+      },
+      {
+        "__id__": 16
       }
     ],
     "_prefab": {
-      "__id__": 15
+      "__id__": 17
     },
     "_opacity": 255,
     "_color": {
@@ -49,8 +52,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 0,
-      "height": 0
+      "width": 59,
+      "height": 79
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -68,8 +71,8 @@
         0,
         0,
         1,
-        1,
-        1,
+        0.95,
+        0.95,
         1
       ]
     },
@@ -534,7 +537,11 @@
     "_grayMaterial": null,
     "duration": 0.1,
     "zoomScale": 1.2,
-    "clickEvents": [],
+    "clickEvents": [
+      {
+        "__id__": 15
+      }
+    ],
     "_N$interactable": true,
     "_N$enableAutoGrayEffect": false,
     "_N$transition": 0,
@@ -587,7 +594,50 @@
     "_N$hoverSprite": null,
     "hoverSprite": null,
     "_N$disabledSprite": null,
-    "_N$target": null,
+    "_N$target": {
+      "__id__": 1
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "cc.ClickEvent",
+    "target": {
+      "__id__": 1
+    },
+    "component": "",
+    "_componentId": "8c44ajbgn1IkqjdR6VOCPD8",
+    "handler": "onUserClick",
+    "customEventData": ""
+  },
+  {
+    "__type__": "8c44ajbgn1IkqjdR6VOCPD8",
+    "_name": "",
+    "_objFlags": 0,
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "mainButton": {
+      "__id__": 14
+    },
+    "normalSprite": {
+      "__id__": 3
+    },
+    "overSprite": {
+      "__id__": 6
+    },
+    "clickSprite": {
+      "__id__": 9
+    },
+    "transSprite": {
+      "__id__": 12
+    },
+    "_x": -1,
+    "_y": -1,
+    "_z": -1,
+    "_type": -1,
+    "_semiType": -1,
+    "_available": false,
     "_id": ""
   },
   {

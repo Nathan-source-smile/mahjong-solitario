@@ -2,7 +2,7 @@ import GlobalData from "./Common/GlobalData";
 
 export const loadImgAtlas = () => {
   return new Promise((resolve, reject) => {
-    cc.loader.loadRes(
+    cc.resources.load(
       "images/main",
       cc.SpriteAtlas,
       function (err, imgAtlas) {

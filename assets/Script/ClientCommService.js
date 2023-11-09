@@ -11,13 +11,13 @@ export const ClientCommService = {
 
         switch (messageType) {
             case MESSAGE_TYPE.SC_START_GAME:
-                GameScene.start1(params.tiles, params.moves);
+                GameScene.start1(params.tiles, params.availableTiles, params.moves);
                 break;
-            case MESSAGE_TYPE.SC_ASK_USER:
-                GameScene.askUser(params.user);
+            case MESSAGE_TYPE.SC_DRAW_BOARD:
+                GameScene.drawBoard(params.tiles, params.availableTiles, params.moves, params.succeed);
                 break;
             case MESSAGE_TYPE.SC_END_GAME:
-                GameScene.showEndModal(params.ranking);
+                GameScene.showEndModal(params.gameResult);
                 break;
             case MESSAGE_TYPE.SC_AVAIL_CELLS:
                 GameScene.setAvailCells(params.availableCells, params.user);
@@ -36,11 +36,7 @@ export const ClientCommService = {
         this.send(MESSAGE_TYPE.CS_COMPARE_TILES, { compareTiles }, 1);
     },
 
-    sendClaimMove(currentUnit, targetCell, user) {
-        this.send(MESSAGE_TYPE.CS_CLAIM_MOVE, { currentUnit, targetCell, user }, 1);
-    },
-
-    sendRestartGame(playerCnt, mode) {
-        this.send(MESSAGE_TYPE.CS_RESTART_GAME, { playerCnt, mode }, 1);
+    sendRestartGame() {
+        this.send(MESSAGE_TYPE.CS_RESTART_GAME, {}, 1);
     }
 };

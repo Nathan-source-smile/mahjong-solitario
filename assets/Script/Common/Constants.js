@@ -1,11 +1,7 @@
-export const TIME_LIMIT = 30;
-export const COINS_LIMIT = 30;
-export const ALARM_LIMIT = 3;
-export const BLOCKSIZE = 75;
 export const TOTAL_TILES = 144;
 export const TOTAL_TIME = 15 * 60;
 export const TOTAL_MOVEMENT = 77;
-export const TILE_SIZE = [14, 20];
+export const TILE_SIZE = [59 * 0.95, 79 * 0.95];
 export const TILES_PER_ROW = 39;
 export const TILES_PER_COLUMN = 19;
 export const WIN = "WIN";

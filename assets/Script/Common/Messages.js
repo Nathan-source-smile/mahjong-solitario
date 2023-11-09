@@ -1,8 +1,8 @@
 export const MESSAGE_TYPE = {
   // Messages from Server to Client
   SC_START_GAME: "SC_START_GAME",
-  SC_DELETE_TILES: "SC_DELETE_TILES",
-  SC_END_USER: "SC_END_USER",
+  // SC_DELETE_TILES: "SC_DELETE_TILES",
+  SC_DRAW_BOARD: "SC_DRAW_BOARD",
   SC_END_GAME: "SC_END_GAME",
 
   // Messsages from Client to Server
