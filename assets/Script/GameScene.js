@@ -84,7 +84,7 @@ cc.Class({
                 this_temp.remainedTiles.string = tiles.length;
                 this_temp.moves.string = GlobalVariables.moves;
                 GlobalVariables.compareTiles = [];
-            }, 500);
+            }, 200);
         } else {
             GlobalVariables.tiles = tiles;
             GlobalVariables.availableTiles = availableTiles;

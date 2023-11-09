@@ -186,7 +186,7 @@ cc.Class({
                 setTimeout(() => {
                     ClientCommService.sendCompareTiles(GlobalVariables.compareTiles);
                     // GlobalVariables.compareTiles = [];
-                }, 500);
+                }, 200);
                 // for (let i = 0; i < GlobalVariables._tileComponents.length; i++) {
                 //     GlobalVariables._tileComponents[i].setFace("normal");
                 // }
