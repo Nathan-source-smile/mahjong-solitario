@@ -31,12 +31,14 @@ cc.Class({
         _layers: [],
         _tiles: [],
         _progress: 1,
+        _time: 0,
+        _gameResult: null,
     },
 
     // use this for initialization
     onLoad: function () {
         GameScene = this;
-
+        this._time = cc.director.getTotalTime();
         loadImgAtlas()
             .then(() => {
                 FakeServer.initHandlers();
@@ -53,11 +55,15 @@ cc.Class({
     start1(tiles, availableTiles, moves) {
         this._layers = [this.layer1, this.layer2, this.layer3, this.layer4, this.layer5];
         this.drawBoard(tiles, availableTiles, moves, false);
+        this._gameResult = null;
         // let time = TOTAL_TIME;
         // setInterval(() => {
         //     this.timeMin.string = Math.floor((time - 1) / 60) + ":";
         //     this.timeSecond.string = Math.floor(())
         // }, 1000);
+        this._time = cc.director.getTotalTime();
+        console.log(this._time);
+        // console.log(cc.director.getCurrentTime())
     },
 
     drawBoard(tiles, availableTiles, moves, succeed) {
@@ -110,13 +116,19 @@ cc.Class({
     clickRestart() {
         this.winNotify.node.active = false;
         this.loseNotify.node.active = false;
+        this.solveNotify.node.active = false;
         this._progress = 1;
         ClientCommService.sendRestartGame();
     },
 
     showEndModal(gameResult) {
+        this._gameResult = gameResult;
         if (gameResult === WIN) {
-            this.winNotify.node.active = true;
+            this.solveNotify.node.active = true;
+            setTimeout(() => {
+                this.solveNotify.node.active = false;
+                this.winNotify.node.active = true;
+            }, 3000);
         } else if (gameResult === LOSE) {
             this.loseNotify.node.active = true;
         }
@@ -132,10 +144,12 @@ cc.Class({
 
     // called every frame
     update: function (dt) {
-        if (this._progress > 0) {
-            this._progress -= dt / TOTAL_TIME;
-            if (this._progress < 0) this._progress = 0;
-            var sec = Math.ceil(this._progress * TOTAL_TIME);
+        // if (this._progress > 0) {
+        //     this._progress -= dt / TOTAL_TIME;
+        //     if (this._progress < 0) this._progress = 0;
+        // var sec = Math.ceil(this._progress * TOTAL_TIME);
+        if (this._gameResult === null) {
+            var sec = TOTAL_TIME - Math.floor((cc.director.getTotalTime() - this._time) / 1000);
             // console.log(sec);
             this.timeMin.string = String(Math.floor(sec / 60)).padStart(2, '0') + ":";
             this.timeSecond.string = String(sec % 60).padStart(2, '0');
@@ -145,15 +159,14 @@ cc.Class({
             } else {
                 this.timeSecond.node.color = new cc.Color(104, 4, 4);
             }
-            // console.log(dt);
-            // let time = TOTAL_TIME - dt;
-            // setInterval(() => {
-            //     this.timeMin.string = Math.floor((time - 1) / 60) + ":";
-            //     this.timeSecond.string = Math.floor(())
-            // }, 1000);
         } else {
-            // this.showProgressBar(false);
+            this.timeMin.string = "00:";
+            this.timeSecond.string = "00";
+            this.timeSecond.node.color = new cc.Color(104, 4, 4);
         }
+        //     } else {
+        //         // this.showProgressBar(false);
+        //     }
     },
 
 });
