@@ -150,6 +150,18 @@ function isWinOrLose() {
                     tiles[j].y = tempY;
                     tiles[j].z = tempZ;
                 }
+                for (var i = tiles.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var tempX = tiles[i].x;
+                    var tempY = tiles[i].y;
+                    var tempZ = tiles[i].z;
+                    tiles[i].x = tiles[j].x;
+                    tiles[i].y = tiles[j].y;
+                    tiles[i].z = tiles[j].z;
+                    tiles[j].x = tempX;
+                    tiles[j].y = tempY;
+                    tiles[j].z = tempZ;
+                }
                 getAvailableTiles();
                 getAvailableMatches();
             }
@@ -172,13 +184,6 @@ function startGame() {
 
     // init values
     gameResult = null;
-    // coordinates = [];
-    // for (var i = 0; i < TOTAL_TILES; i++) {
-    //     var z = Math.floor(i / 36);
-    //     var x = Math.floor((i % 36) / 6) * 2;
-    //     var y = Math.floor((i % 36) % 6) * 2;
-    //     coordinates.push({ x: x, y: y, z: z });
-    // }
     coordinates = [
         { x: 0, y: 2, z: 0 },
         { x: 0, y: 4, z: 0 },
@@ -365,6 +370,36 @@ function startGame() {
     availableTiles = [];
     availableMatches = [];
     moves = TOTAL_MOVEMENT;
+
+    while (availableMatches.length === 0) {
+        // shuffle the tile positions in place
+        for (var i = tiles.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tempX = tiles[i].x;
+            var tempY = tiles[i].y;
+            var tempZ = tiles[i].z;
+            tiles[i].x = tiles[j].x;
+            tiles[i].y = tiles[j].y;
+            tiles[i].z = tiles[j].z;
+            tiles[j].x = tempX;
+            tiles[j].y = tempY;
+            tiles[j].z = tempZ;
+        }
+        for (var i = tiles.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tempX = tiles[i].x;
+            var tempY = tiles[i].y;
+            var tempZ = tiles[i].z;
+            tiles[i].x = tiles[j].x;
+            tiles[i].y = tiles[j].y;
+            tiles[i].z = tiles[j].z;
+            tiles[j].x = tempX;
+            tiles[j].y = tempY;
+            tiles[j].z = tempZ;
+        }
+        getAvailableTiles();
+        getAvailableMatches();
+    }
 
     getAvailableTiles();
     getAvailableMatches();
