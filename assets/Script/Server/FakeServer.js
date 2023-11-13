@@ -19,6 +19,7 @@ var moves = TOTAL_MOVEMENT;
 var compareTiles = [];
 var gameResult = null;
 var timeTracker = null;
+var reason = null;
 //--------Defining global variables----------
 
 function copyObject(object) {
@@ -148,6 +149,7 @@ function isWinOrLose() {
             }
             if (!r) {
                 gameResult = LOSE;
+                reason = "move";
                 return;
             }
             while (availableMatches.length === 0) {
@@ -185,8 +187,10 @@ function isWinOrLose() {
                 [0],
             );
         }
-        if (moves === 0)
+        if (moves === 0) {
             gameResult = LOSE;
+            reason = "move";
+        }
     }
 }
 
@@ -198,6 +202,7 @@ function startGame() {
 
     // init values
     gameResult = null;
+    reason = null;
     coordinates = [
         { x: 0, y: 2, z: 0 },
         { x: 0, y: 4, z: 0 },
@@ -428,6 +433,7 @@ function startGame() {
 
     timeTracker = setTimeout(() => {
         gameResult = LOSE;
+        reason = "time";
         gameOver();
     }, TOTAL_TIME * 1000);
 
@@ -470,7 +476,7 @@ function deleteTile(tile) {
 function gameOver() {
     ServerCommService.send(
         MESSAGE_TYPE.SC_END_GAME,
-        { gameResult: gameResult },
+        { gameResult: gameResult, reason: reason },
         [0],
     );
 }

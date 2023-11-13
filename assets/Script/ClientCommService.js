@@ -17,7 +17,7 @@ export const ClientCommService = {
                 GameScene.drawBoard(params.tiles, params.availableTiles, params.moves, params.succeed);
                 break;
             case MESSAGE_TYPE.SC_END_GAME:
-                GameScene.showEndModal(params.gameResult);
+                GameScene.showEndModal(params.gameResult, params.reason);
                 break;
             case MESSAGE_TYPE.SC_AVAIL_CELLS:
                 GameScene.setAvailCells(params.availableCells, params.user);

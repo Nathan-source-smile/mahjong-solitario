@@ -3,6 +3,20 @@ import GlobalData from "./Common/GlobalData";
 export const loadImgAtlas = () => {
   return new Promise((resolve, reject) => {
     cc.resources.load(
+      "images/timer",
+      cc.SpriteAtlas,
+      function (err, timerAtlas) {
+        if (err) {
+          console.log("Error loading timer atlas", err);
+          // reject();
+          return;
+        }
+        console.log("Loaded timer atlas successfully!");
+        GlobalData.timerAtlas = timerAtlas;
+        // resolve();
+      }
+    );
+    cc.resources.load(
       "images/main",
       cc.SpriteAtlas,
       function (err, imgAtlas) {

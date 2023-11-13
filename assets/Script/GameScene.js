@@ -5,6 +5,7 @@ import TopBar from "./TopBar";
 import GlobalVariables from "./GlobalVariables";
 import Modal from "./Modal";
 import { LOSE, TILE_SIZE, TOTAL_TIME, WIN } from "./Common/Constants";
+import GlobalData from "./Common/GlobalData";
 
 export let GameScene;
 cc.Class({
@@ -15,6 +16,7 @@ cc.Class({
 
         winNotify: Modal,
         loseNotify: Modal,
+        loseNotifyTime: Modal,
         solveNotify: Modal,
         topBar: TopBar,
         moves: cc.Label,
@@ -33,6 +35,7 @@ cc.Class({
         _progress: 1,
         _time: 0,
         _gameResult: null,
+        _animTime: null,
     },
 
     // use this for initialization
@@ -65,6 +68,33 @@ cc.Class({
         console.log(this._time);
         GlobalVariables.gameResult = null;
         // console.log(cc.director.getCurrentTime())
+
+        var ttt = this;
+
+        this._animTime = setTimeout(() => {
+            var frames = GlobalData.timerAtlas.getSpriteFrames();
+            var desiredTime = 1; // in seconds
+            var frameRate = frames.length / desiredTime;
+            var animationClip = cc.AnimationClip.createWithSpriteFrames(frames, frameRate);
+            animationClip.wrapMode = cc.WrapMode.Loop;
+            animationClip.name = "animationClip";
+            // animationClip.wrapMode = cc.WrapMode.Normal;
+            // animationClip.name = "animationClip";
+
+
+            var node = new cc.Node();
+            var sprite = node.addComponent(cc.Sprite);
+            var animation = node.addComponent(cc.Animation);
+            animation.addClip(animationClip);
+            animation.play("animationClip");
+            // animation.on('finished', function () {
+            //     node.removeFromParent(true);
+            // });
+            setTimeout(() => {
+                node.removeFromParent(true);
+            }, 4000);
+            ttt.node.addChild(node);
+        }, (TOTAL_TIME - 40) * 1000);
     },
 
     drawBoard(tiles, availableTiles, moves, succeed) {
@@ -118,11 +148,13 @@ cc.Class({
         this.winNotify.node.active = false;
         this.loseNotify.node.active = false;
         this.solveNotify.node.active = false;
+        this.loseNotifyTime.node.active = false;
         this._progress = 1;
         ClientCommService.sendRestartGame();
     },
 
-    showEndModal(gameResult) {
+    showEndModal(gameResult, reason) {
+        clearTimeout(this._animTime);
         this._gameResult = gameResult;
         GlobalVariables.gameResult = gameResult;
         if (gameResult === WIN && this.loseNotify.node.active !== true) {
@@ -131,8 +163,11 @@ cc.Class({
                 this.solveNotify.node.active = false;
                 this.winNotify.node.active = true;
             }, 3000);
-        } else if (gameResult === LOSE && this.winNotify.node.active !== true && this.solveNotify.node.active !== true) {
-            this.loseNotify.node.active = true;
+        } else if (gameResult === LOSE) {
+            if (reason === "move")
+                this.loseNotify.node.active = true;
+            else if (reason === "time")
+                this.loseNotifyTime.node.active = true;
         }
     },
 
@@ -160,6 +195,12 @@ cc.Class({
                 // this.timeSecond.node.opacity = 255;
             } else {
                 this.timeSecond.node.color = new cc.Color(104, 4, 4);
+                if (sec === 40) {
+                    // animation.play("animationClip");
+                    // setTimeout(() => {
+                    //     node.removeFromParent(true);
+                    // }, 4000);
+                }
             }
         } else {
             this.timeMin.string = "00:";
