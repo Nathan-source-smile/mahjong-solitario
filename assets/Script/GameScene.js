@@ -63,6 +63,7 @@ cc.Class({
         // }, 1000);
         this._time = cc.director.getTotalTime();
         console.log(this._time);
+        GlobalVariables.gameResult = null;
         // console.log(cc.director.getCurrentTime())
     },
 
@@ -123,6 +124,7 @@ cc.Class({
 
     showEndModal(gameResult) {
         this._gameResult = gameResult;
+        GlobalVariables.gameResult = gameResult;
         if (gameResult === WIN && this.loseNotify.node.active !== true) {
             this.solveNotify.node.active = true;
             setTimeout(() => {

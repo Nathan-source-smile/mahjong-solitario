@@ -157,7 +157,7 @@ cc.Class({
     },
 
     onUserClick() {
-        if (this._available && GlobalVariables.compareTiles.length < 2) {
+        if (this._available && GlobalVariables.compareTiles.length < 2 && GlobalVariables.gameResult === null) {
             if (this.isSelected()) {
                 this.setFace("normal");
                 GlobalVariables.compareTiles = [];

@@ -381,6 +381,7 @@ function startGame() {
         temp.z = coordinates[i].z; // 0~9
         tiles.push(temp);
     }
+    // tiles = tiles.slice(0, 2);
     availableTiles = [];
     availableMatches = [];
     moves = TOTAL_MOVEMENT;
