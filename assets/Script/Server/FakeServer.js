@@ -104,13 +104,17 @@ function getAvailableTiles() {
     availableTiles = [];
     for (var i = 0; i < tiles.length; i++) {
         var tile = tiles[i];
-        if (isSelectable(tile.x, tile.y, tile.z))
+        if (isSelectable(tile.x, tile.y, tile.z)) {
             if (isLeftFree(tile) || isRightFree(tile)) {
                 availableTiles.push(tile);
                 tiles[i].available = true;
             } else {
                 tiles[i].available = false;
             }
+        }
+        else {
+            tiles[i].available = false;
+        }
     }
 }
 
@@ -136,6 +140,16 @@ function isWinOrLose() {
     else {
         if (tiles.length > 0 && availableMatches.length === 0) {
             console.log("dddraw");
+            var target = copyObject(tiles[0]);
+            var r = false;
+            for (var i = 1; i < tiles.length; i++) {
+                if (tiles[i].x !== target.x || tiles[i].y !== target.y)
+                    r = true;
+            }
+            if (!r) {
+                gameResult = LOSE;
+                return;
+            }
             while (availableMatches.length === 0) {
                 // shuffle the tile positions in place
                 for (var i = tiles.length - 1; i > 0; i--) {

@@ -123,13 +123,13 @@ cc.Class({
 
     showEndModal(gameResult) {
         this._gameResult = gameResult;
-        if (gameResult === WIN) {
+        if (gameResult === WIN && this.loseNotify.node.active !== true) {
             this.solveNotify.node.active = true;
             setTimeout(() => {
                 this.solveNotify.node.active = false;
                 this.winNotify.node.active = true;
             }, 3000);
-        } else if (gameResult === LOSE) {
+        } else if (gameResult === LOSE && this.winNotify.node.active !== true && this.solveNotify.node.active !== true) {
             this.loseNotify.node.active = true;
         }
     },
