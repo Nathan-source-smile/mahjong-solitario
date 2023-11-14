@@ -156,6 +156,8 @@ function isWinOrLose() {
                     tiles[i].y = (Math.floor(Math.random() * r) + i * r) * 2;
                     tiles[i].z = 0;
                 }
+                getAvailableTiles();
+                getAvailableMatches();
             } else {
                 while (availableMatches.length === 0) {
                     // shuffle the tile positions in place

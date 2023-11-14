@@ -70,22 +70,22 @@ cc.Class({
         GlobalVariables.gameResult = null;
         // console.log(cc.director.getCurrentTime())
 
-        var ttt = this;
+        let ttt = this;
 
         this._animTime = setTimeout(() => {
-            var frames = GlobalData.timerAtlas.getSpriteFrames();
-            var desiredTime = 1; // in seconds
-            var frameRate = frames.length / desiredTime;
-            var animationClip = cc.AnimationClip.createWithSpriteFrames(frames, frameRate);
+            let frames = GlobalData.timerAtlas.getSpriteFrames();
+            let desiredTime = 1; // in seconds
+            let frameRate = frames.length / desiredTime;
+            let animationClip = cc.AnimationClip.createWithSpriteFrames(frames, frameRate);
             animationClip.wrapMode = cc.WrapMode.Loop;
             animationClip.name = "animationClip";
             // animationClip.wrapMode = cc.WrapMode.Normal;
             // animationClip.name = "animationClip";
 
 
-            var node = new cc.Node();
-            var sprite = node.addComponent(cc.Sprite);
-            var animation = node.addComponent(cc.Animation);
+            let node = new cc.Node();
+            let sprite = node.addComponent(cc.Sprite);
+            let animation = node.addComponent(cc.Animation);
             animation.addClip(animationClip);
             animation.play("animationClip");
             // animation.on('finished', function () {
@@ -99,14 +99,14 @@ cc.Class({
 
 
         // this.noMoreNotify.node.active = true;
-        // var ttt = this;
+        // let ttt = this;
         // setTimeout(() => {
         //     ttt.noMoreNotify.node.active = false;
         // }, 3000)
     },
 
     drawBoard(tiles, availableTiles, moves, succeed) {
-        var this_temp = this;
+        let this_temp = this;
         if (succeed) {
             this.getTile(GlobalVariables.compareTiles[0]);
             this.getTile(GlobalVariables.compareTiles[1]);
@@ -162,11 +162,30 @@ cc.Class({
     },
 
     showNoMore() {
+        let frames = GlobalData.shuffleAtlas.getSpriteFrames();
+        let desiredTime = 1; // in seconds
+        let frameRate = frames.length / desiredTime;
+        let animationClip = cc.AnimationClip.createWithSpriteFrames(frames, frameRate);
+        animationClip.wrapMode = cc.WrapMode.Loop;
+        animationClip.name = "animationClip";
+
+
+        let node = new cc.Node();
+        let sprite = node.addComponent(cc.Sprite);
+        let animation = node.addComponent(cc.Animation);
+        animation.addClip(animationClip);
+        animation.play("animationClip");
+        setTimeout(() => {
+            node.removeFromParent(true);
+        }, 2000);
+        this.noMoreNotify.node.addChild(node);
+        node.setPosition(cc.v2(0, -25));
+
         this.noMoreNotify.node.active = true;
-        var ttt = this;
+        let ttt = this;
         setTimeout(() => {
             ttt.noMoreNotify.node.active = false;
-        }, 2000)
+        }, 2000);
     },
 
     showEndModal(gameResult, reason) {
@@ -200,9 +219,9 @@ cc.Class({
         // if (this._progress > 0) {
         //     this._progress -= dt / TOTAL_TIME;
         //     if (this._progress < 0) this._progress = 0;
-        // var sec = Math.ceil(this._progress * TOTAL_TIME);
+        // let sec = Math.ceil(this._progress * TOTAL_TIME);
         if (this._gameResult === null) {
-            var sec = TOTAL_TIME - Math.floor((cc.director.getTotalTime() - this._time) / 1000);
+            let sec = TOTAL_TIME - Math.floor((cc.director.getTotalTime() - this._time) / 1000);
             // console.log(sec);
             this.timeMin.string = String(Math.floor(sec / 60)).padStart(2, '0') + ":";
             this.timeSecond.string = String(sec % 60).padStart(2, '0');
