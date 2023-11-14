@@ -148,38 +148,44 @@ function isWinOrLose() {
                     r = true;
             }
             if (!r) {
-                gameResult = LOSE;
-                reason = "move";
-                return;
-            }
-            while (availableMatches.length === 0) {
-                // shuffle the tile positions in place
-                for (var i = tiles.length - 1; i > 0; i--) {
-                    var j = Math.floor(Math.random() * (i + 1));
-                    var tempX = tiles[i].x;
-                    var tempY = tiles[i].y;
-                    var tempZ = tiles[i].z;
-                    tiles[i].x = tiles[j].x;
-                    tiles[i].y = tiles[j].y;
-                    tiles[i].z = tiles[j].z;
-                    tiles[j].x = tempX;
-                    tiles[j].y = tempY;
-                    tiles[j].z = tempZ;
+                // gameResult = LOSE;
+                // reason = "move";
+                var r = Math.floor(14 / tiles.length);
+                for (var i = 0; i < tiles.length; i++) {
+                    tiles[i].x = Math.floor(Math.random() * 7) * 2;
+                    tiles[i].y = (Math.floor(Math.random() * r) + i * r) * 2;
+                    tiles[i].z = 0;
                 }
-                for (var i = tiles.length - 1; i > 0; i--) {
-                    var j = Math.floor(Math.random() * (i + 1));
-                    var tempX = tiles[i].x;
-                    var tempY = tiles[i].y;
-                    var tempZ = tiles[i].z;
-                    tiles[i].x = tiles[j].x;
-                    tiles[i].y = tiles[j].y;
-                    tiles[i].z = tiles[j].z;
-                    tiles[j].x = tempX;
-                    tiles[j].y = tempY;
-                    tiles[j].z = tempZ;
+            } else {
+                while (availableMatches.length === 0) {
+                    // shuffle the tile positions in place
+                    for (var i = tiles.length - 1; i > 0; i--) {
+                        var j = Math.floor(Math.random() * (i + 1));
+                        var tempX = tiles[i].x;
+                        var tempY = tiles[i].y;
+                        var tempZ = tiles[i].z;
+                        tiles[i].x = tiles[j].x;
+                        tiles[i].y = tiles[j].y;
+                        tiles[i].z = tiles[j].z;
+                        tiles[j].x = tempX;
+                        tiles[j].y = tempY;
+                        tiles[j].z = tempZ;
+                    }
+                    for (var i = tiles.length - 1; i > 0; i--) {
+                        var j = Math.floor(Math.random() * (i + 1));
+                        var tempX = tiles[i].x;
+                        var tempY = tiles[i].y;
+                        var tempZ = tiles[i].z;
+                        tiles[i].x = tiles[j].x;
+                        tiles[i].y = tiles[j].y;
+                        tiles[i].z = tiles[j].z;
+                        tiles[j].x = tempX;
+                        tiles[j].y = tempY;
+                        tiles[j].z = tempZ;
+                    }
+                    getAvailableTiles();
+                    getAvailableMatches();
                 }
-                getAvailableTiles();
-                getAvailableMatches();
             }
             ServerCommService.send(
                 MESSAGE_TYPE.SC_NO_MORE,
@@ -356,7 +362,18 @@ function startGame() {
         { x: 8, y: 12, z: 3 },
         { x: 8, y: 14, z: 3 },
         { x: 7, y: 13, z: 4 },
-    ]
+    ];
+    // coordinates = [
+    //     { x: 0, y: 2, z: 0 },
+    //     { x: 0, y: 2, z: 1 },
+    //     { x: 0, y: 2, z: 2 },
+    //     { x: 0, y: 2, z: 3 },
+    //     { x: 0, y: 2, z: 4 },
+    //     { x: 6, y: 2, z: 0 },
+    //     { x: 8, y: 6, z: 0 },
+    //     { x: 8, y: 2, z: 0 },
+    //     { x: 10, y: 8, z: 0 },
+    // ];
     coordinates.sort(function (a, b) {
         return Math.floor(Math.random() * 3) - 1;
     });
@@ -389,12 +406,14 @@ function startGame() {
             temp.semiType = 5 + (temp.type - 29);
         }
         temp.available = false;
-        temp.x = coordinates[i].x; // 0~18
-        temp.y = coordinates[i].y; // 0~38
-        temp.z = coordinates[i].z; // 0~9
-        tiles.push(temp);
+        if (coordinates[i]) {
+            temp.x = coordinates[i].x; // 0~18
+            temp.y = coordinates[i].y; // 0~38
+            temp.z = coordinates[i].z; // 0~9
+            tiles.push(temp);
+        }
     }
-    // tiles = tiles.slice(0, 2);
+    // tiles = tiles.slice(0, 8);
     availableTiles = [];
     availableMatches = [];
     moves = TOTAL_MOVEMENT;
