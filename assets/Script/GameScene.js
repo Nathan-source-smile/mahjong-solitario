@@ -166,7 +166,7 @@ cc.Class({
         var ttt = this;
         setTimeout(() => {
             ttt.noMoreNotify.node.active = false;
-        }, 3000)
+        }, 2000)
     },
 
     showEndModal(gameResult, reason) {

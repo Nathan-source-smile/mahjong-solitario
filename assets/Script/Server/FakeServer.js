@@ -192,7 +192,7 @@ function isWinOrLose() {
                     { tiles: tiles, availableTiles: availableTiles, moves: moves, succeed: false },
                     [0],
                 );
-            }, 3000)
+            }, 2000)
 
         }
         if (moves === 0) {
