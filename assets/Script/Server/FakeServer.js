@@ -182,10 +182,18 @@ function isWinOrLose() {
                 getAvailableMatches();
             }
             ServerCommService.send(
-                MESSAGE_TYPE.SC_DRAW_BOARD,
-                { tiles: tiles, availableTiles: availableTiles, moves: moves, succeed: false },
+                MESSAGE_TYPE.SC_NO_MORE,
+                {},
                 [0],
             );
+            setTimeout(() => {
+                ServerCommService.send(
+                    MESSAGE_TYPE.SC_DRAW_BOARD,
+                    { tiles: tiles, availableTiles: availableTiles, moves: moves, succeed: false },
+                    [0],
+                );
+            }, 3000)
+
         }
         if (moves === 0) {
             gameResult = LOSE;

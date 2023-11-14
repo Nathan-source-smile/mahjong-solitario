@@ -18,6 +18,7 @@ cc.Class({
         loseNotify: Modal,
         loseNotifyTime: Modal,
         solveNotify: Modal,
+        noMoreNotify: Modal,
         topBar: TopBar,
         moves: cc.Label,
         timeMin: cc.Label,
@@ -95,6 +96,13 @@ cc.Class({
             }, 4000);
             ttt.node.addChild(node);
         }, (TOTAL_TIME - 40) * 1000);
+
+
+        // this.noMoreNotify.node.active = true;
+        // var ttt = this;
+        // setTimeout(() => {
+        //     ttt.noMoreNotify.node.active = false;
+        // }, 3000)
     },
 
     drawBoard(tiles, availableTiles, moves, succeed) {
@@ -151,6 +159,14 @@ cc.Class({
         this.loseNotifyTime.node.active = false;
         this._progress = 1;
         ClientCommService.sendRestartGame();
+    },
+
+    showNoMore() {
+        this.noMoreNotify.node.active = true;
+        var ttt = this;
+        setTimeout(() => {
+            ttt.noMoreNotify.node.active = false;
+        }, 3000)
     },
 
     showEndModal(gameResult, reason) {

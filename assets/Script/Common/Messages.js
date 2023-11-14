@@ -4,6 +4,7 @@ export const MESSAGE_TYPE = {
   // SC_DELETE_TILES: "SC_DELETE_TILES",
   SC_DRAW_BOARD: "SC_DRAW_BOARD",
   SC_END_GAME: "SC_END_GAME",
+  SC_NO_MORE: "SC_NO_MORE",
 
   // Messsages from Client to Server
   CS_COMPARE_TILES: "CS_COMPARE_TILES",

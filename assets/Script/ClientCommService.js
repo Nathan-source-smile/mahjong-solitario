@@ -19,11 +19,8 @@ export const ClientCommService = {
             case MESSAGE_TYPE.SC_END_GAME:
                 GameScene.showEndModal(params.gameResult, params.reason);
                 break;
-            case MESSAGE_TYPE.SC_AVAIL_CELLS:
-                GameScene.setAvailCells(params.availableCells, params.user);
-                break;
-            case MESSAGE_TYPE.SC_MOVE_UNIT:
-                GameScene.setMoveResult(params.result, params.finish, params.user, params.currentUnit, params.targetCell, params.ranking, params.entered);
+            case MESSAGE_TYPE.SC_NO_MORE:
+                GameScene.showNoMore();
                 break;
         }
     },
